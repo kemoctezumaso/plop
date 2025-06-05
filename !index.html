@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ubicar y Registrar Punto</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+    input, button { padding: 10px; margin: 5px 0; width: 100%; }
+    #map { height: 400px; margin-top: 20px; }
+  </style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+  <h2>Registrar punto geográfico</h2>
+  <input type="text" id="nombre" placeholder="Nombre del punto" required />
+  <button onclick="enviarFormulario()">Enviar punto</button>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    let mapa = L.map('map').setView([4.6, -74.1], 12); // Bogotá como punto de partida
+    let marcador = null;
+    let lat = null;
+    let lon = null;
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(mapa);
+
+    // Intentar obtener la ubicación actual
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        lat = pos.coords.latitude;
+        lon = pos.coords.longitude;
+        marcador = L.marker([lat, lon], {draggable: true}).addTo(mapa)
+          .bindPopup("Aquí estás").openPopup();
+        mapa.setView([lat, lon], 16);
+
+        marcador.on('dragend', function(e) {
+          let pos = marcador.getLatLng();
+          lat = pos.lat;
+          lon = pos.lng;
+        });
+      }, function(err) {
+        alert("No se pudo obtener tu ubicación. Puedes hacer clic en el mapa.");
+      });
+    } else {
+      alert("Tu navegador no soporta geolocalización.");
+    }
+
+    // Clic manual en el mapa
+    mapa.on('click', function(e) {
+      lat = e.latlng.lat;
+      lon = e.latlng.lng;
+
+      if (marcador) {
+        marcador.setLatLng([lat, lon]);
+      } else {
+        marcador = L.marker([lat, lon], {draggable: true}).addTo(mapa);
+        marcador.on('dragend', function(e) {
+          let pos = marcador.getLatLng();
+          lat = pos.lat;
+          lon = pos.lng;
+        });
+      }
+    });
+
+    function enviarFormulario() {
+      const nombre = document.getElementById("nombre").value;
+      if (!nombre || lat === null || lon === null) {
+        alert("Por favor, escribe un nombre y selecciona una ubicación.");
+        return;
+      }
+
+      // Reemplaza esta URL con la de tu formulario
+      const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSc6yj3QdmsAAkmfhkFKe7K3oVeYMz9ZF9N219x_29PtNfiD_w/formResponse";
+
+      // Reemplaza estos IDs con los que corresponden a tu formulario
+      const data = new URLSearchParams();
+      data.append("entry.1741729720", nombre);   // Campo: nombre
+      data.append("entry.214199596", lat);       // Campo: latitud
+      data.append("entry.395944249", lon);       // Campo: longitud
+
+      fetch(formURL, {
+        method: "POST",
+        mode: "no-cors",
+        body: data
+      }).then(() => {
+        alert("¡Punto registrado con éxito!");
+        document.getElementById("nombre").value = "";
+      }).catch(() => {
+        alert("Hubo un problema al enviar el punto.");
+      });
+    }
+  </script>
+</body>
+</html>
